@@ -15,6 +15,8 @@ from typing import (
     Self,
 )
 from urllib.parse import ParseResult as URI
+from iso6709 import Location
+from datetime import datetime
 
 """
 Globals section / Wraps / Protocols
@@ -81,7 +83,7 @@ class Boolean(Wrap[bool]):
         return "Boolean"
 
 
-class Timestamp(Wrap[str]):
+class Timestamp(Wrap[datetime]):
     def __str__(self) -> str:
         return "Timestamp"
 
@@ -89,7 +91,7 @@ class Timestamp(Wrap[str]):
         return "Timestamp"
 
 
-class Geolocation(Wrap[str]):
+class Geolocation(Wrap[Location]):
     def __str__(self) -> str:
         return "Geolocation"
 
