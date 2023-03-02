@@ -2,7 +2,16 @@ from __future__ import annotations
 
 
 from enum import StrEnum, auto
-from typing import NamedTuple, TypeAlias, Protocol, Self, TypeVar, Generic
+from typing import (
+    NamedTuple,
+    TypeAlias,
+    Protocol,
+    TypeVar,
+    Any,
+    MutableSequence,
+    MutableMapping,
+    Generic,
+)
 from urllib.parse import ParseResult as URI
 
 """
@@ -16,11 +25,15 @@ class ParseKey(Protocol):
         ...
 
 
-class Primitive:
-    pass
+Wrapped = TypeVar("Wrapped")
 
 
-class String(Primitive):
+class Primitive(Generic[Wrapped]):
+    def __init__(self, value: Wrapped, /) -> None:
+        self.value = value
+
+
+class String(Primitive[str]):
     def __str__(self) -> str:
         return "String"
 
@@ -28,7 +41,7 @@ class String(Primitive):
         return "String"
 
 
-class Integer(Primitive):
+class Integer(Primitive[int]):
     def __str__(self) -> str:
         return "Integer"
 
@@ -36,7 +49,7 @@ class Integer(Primitive):
         return "Integer"
 
 
-class Double(Primitive):
+class Double(Primitive[float]):
     def __str__(self) -> str:
         return "Double"
 
@@ -44,7 +57,7 @@ class Double(Primitive):
         return "Double"
 
 
-class Boolean(Primitive):
+class Boolean(Primitive[bool]):
     def __str__(self) -> str:
         return "Boolean"
 
@@ -52,7 +65,7 @@ class Boolean(Primitive):
         return "Boolean"
 
 
-class Timestamp(Primitive):
+class Timestamp(Primitive[str]):
     def __str__(self) -> str:
         return "Timestamp"
 
@@ -60,7 +73,7 @@ class Timestamp(Primitive):
         return "Timestamp"
 
 
-class Geolocation(Primitive):
+class Geolocation(Primitive[str]):
     def __str__(self) -> str:
         return "Geolocation"
 
@@ -72,11 +85,28 @@ Types: TypeAlias = String | Integer | Double | Boolean | Timestamp | Geolocation
 
 InType = TypeVar("InType", bound=Types, contravariant=True)
 OutType = TypeVar("OutType", bound=Types, covariant=True)
+T = TypeVar("T")
+
+
+class Vec(Primitive[list[T]]):
+    def __str__(self) -> str:
+        return f"{self.value}"
+
+    def __repr__(self) -> str:
+        return f"Vec([{','.join(repr(val) for val in self.value)}])"
+
+
+class Map(Primitive[dict[str, T]]):
+    def __str__(self) -> str:
+        return f"{self.value}"
+
+    def __repr__(self) -> str:
+        return f"Map({{{','.join(f'{key}:{repr(val)}' for key, val in self.value.items())}}})"
+
 
 class Vis(Protocol[InType, OutType]):
-    def generate(self: Self, data: InType) -> OutType:
+    def generate(self, data: InType) -> OutType:
         ...
-
 
 
 class Version(NamedTuple):
