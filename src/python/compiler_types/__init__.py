@@ -15,7 +15,7 @@ from typing import (
     Self,
 )
 from urllib.parse import ParseResult as URI
-from iso6709 import Location
+from iso6709.iso6709 import Location
 from datetime import datetime
 
 """
@@ -24,19 +24,35 @@ Globals section / Wraps / Protocols
 
 
 class Parse(Protocol):
+    """
+    A type that can be parsed from a stream.
+    """
     @classmethod
     def parse(cls, input: str) -> tuple[Self, str]:
+        """
+        Takes a stream of text and returns a tuple of the parsed value and the remaining text.
+        Raises a ValueError if the text cannot be parsed.
+        """
         ...
 
 
 def parse_types(t: tuple[Parse, ...]) -> Iterable[type[Parse]]:
+    """
+    Returns an iterable containing the types of the elements a given tuple.
+    """
     for val in t:
         yield type(val)
 
 
 class ParseKey(Protocol):
+    """
+    A class that has a key, representing a full section.
+    """
     @classmethod
     def parse_key(cls) -> str:
+        """
+        The classe's parse key.
+        """
         ...
 
 
@@ -44,80 +60,61 @@ Wrapped = TypeVar("Wrapped")
 
 
 class Wrap(Generic[Wrapped]):
+    """
+    Wraps a type to add a custom __repr__ and __str__.
+
+    Forwards all other calls to the wrapped type.
+    """
     def __init__(self, value: Wrapped, /) -> None:
         self.value = value
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self.value, name)
 
-
-class String(Wrap[str]):
     def __str__(self) -> str:
-        return "String"
+        return f"{type(self).__name__}({self.value})"
 
     def __repr__(self) -> str:
-        return "String"
+        return f"{type(self).__name__}({self.value})"
+
+
+class String(Wrap[str]):
+    ...
 
 
 class Integer(Wrap[int]):
-    def __str__(self) -> str:
-        return "Integer"
-
-    def __repr__(self) -> str:
-        return "Integer"
+    ...
 
 
 class Double(Wrap[float]):
-    def __str__(self) -> str:
-        return "Double"
-
-    def __repr__(self) -> str:
-        return "Double"
+    ...
 
 
 class Boolean(Wrap[bool]):
-    def __str__(self) -> str:
-        return "Boolean"
-
-    def __repr__(self) -> str:
-        return "Boolean"
+    ...
 
 
 class Timestamp(Wrap[datetime]):
-    def __str__(self) -> str:
-        return "Timestamp"
-
-    def __repr__(self) -> str:
-        return "Timestamp"
+    ...
 
 
 class Geolocation(Wrap[Location]):
-    def __str__(self) -> str:
-        return "Geolocation"
-
-    def __repr__(self) -> str:
-        return "Geolocation"
+    ...
 
 
 Types: TypeAlias = String | Integer | Double | Boolean | Timestamp | Geolocation
 
-InType = TypeVar("InType", bound=Types, contravariant=True)
+InType = TypeVar("InType", contravariant=True)
 OutType = TypeVar("OutType", covariant=True)
 T = TypeVar("T")
 
 
 class Vec(Wrap[list[T]]):
-    def __str__(self) -> str:
-        return f"{self.value}"
-
     def __repr__(self) -> str:
         return f"Vec([{','.join(repr(val) for val in self.value)}])"
 
 
 class Map(Wrap[dict[str, T]]):
-    def __str__(self) -> str:
-        return f"{self.value}"
-
     def __repr__(self) -> str:
         return f"Map({{{','.join(f'{key}:{repr(val)}' for key, val in self.value.items())}}})"
 
@@ -282,8 +279,8 @@ class LineGraph:
     ...
 
 
-class TableVis(NamedTuple):
-    def generate(self, data: Types) -> TableGraph:
+class TableVis(NamedTuple, Generic[T]):
+    def generate(self, data: T) -> TableGraph:
         """
         TODO: DEFINE TYPES AND IMPLEMENTATION
         It should take some input data and return a graph type
@@ -297,8 +294,8 @@ class TableVis(NamedTuple):
         return "TableVis"
 
 
-class ChartVis(NamedTuple):
-    def generate(self, data: Types) -> ChartGraph:
+class ChartVis(NamedTuple, Generic[T]):
+    def generate(self, data: T) -> ChartGraph:
         """
         TODO: DEFINE TYPES AND IMPLEMENTATION
         It should take some input data and return a graph type
@@ -312,8 +309,8 @@ class ChartVis(NamedTuple):
         return "ChartVis"
 
 
-class MapVis(NamedTuple):
-    def generate(self, data: Types) -> MapGraph:
+class MapVis(NamedTuple, Generic[T]):
+    def generate(self, data: T) -> MapGraph:
         """
         TODO: DEFINE TYPES AND IMPLEMENTATION
         It should take some input data and return a graph type
@@ -327,8 +324,8 @@ class MapVis(NamedTuple):
         return "MapVis"
 
 
-class LineVis(NamedTuple):
-    def generate(self, data: Types) -> LineGraph:
+class LineVis(NamedTuple, Generic[T]):
+    def generate(self, data: T) -> LineGraph:
         """
         TODO: DEFINE TYPES AND IMPLEMENTATION
         It should take some input data and return a graph type
@@ -343,6 +340,9 @@ class LineVis(NamedTuple):
 
 
 class Visualizations(NamedTuple):
+    """
+    TODO! Fix this section
+    """
     type: type[Vis[Types, Types]]
     format: Map[type[Types]]
 
