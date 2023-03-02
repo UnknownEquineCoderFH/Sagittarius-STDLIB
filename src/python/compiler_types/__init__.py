@@ -110,9 +110,9 @@ class Vis(Protocol[InType, OutType]):
 
 
 class Version(NamedTuple):
-    major: int
-    minor: int
-    patch: int
+    major: Integer
+    minor: Integer
+    patch: Integer
 
     def __str__(self) -> str:
         return f"{self.major}.{self.minor}.{self.patch}"
@@ -145,7 +145,7 @@ class Scope(StrEnum):
 
 
 class Service(NamedTuple):
-    name: str
+    name: String
     version: Version
     scope: Scope
 
@@ -171,7 +171,7 @@ class Provider(StrEnum):
 
 
 class SensorFormat(NamedTuple):
-    props: dict[str, Types]
+    props: Map[Types]
 
     def __str__(self) -> str:
         return f"SensorFormat({self.props})"
@@ -198,7 +198,7 @@ class Sensor(NamedTuple):
 
 
 class SensorData(NamedTuple):
-    sensors: dict[str, Sensor]
+    sensors: Map[Sensor]
 
     @classmethod
     def parse_key(cls) -> str:
@@ -310,7 +310,7 @@ class LineVis(NamedTuple):
 
 class Visualizations(NamedTuple):
     type: type[Vis[Types, Types]]
-    format: dict[str, type[Types]]
+    format: Map[type[Types]]
 
     def __str__(self) -> str:
         return f"{self.type} ({self.format})"
@@ -322,7 +322,7 @@ class Visualizations(NamedTuple):
 class Application(NamedTuple):
     type: AppType
     layout: AppLayout
-    graphs: dict[str, Visualizations]
+    graphs: Map[Visualizations]
 
     @classmethod
     def parse_key(cls) -> str:
@@ -353,9 +353,9 @@ class DeploymentType(StrEnum):
 
 class DeploymentEnv(NamedTuple):
     uri: URI
-    port: int | None
+    port: Integer | None
     type: DeploymentType
-    credentials: dict[str, str] | None
+    credentials: Map[String] | None
 
     def __str__(self) -> str:
         return f"{self.uri}:{self.port} ({self.type})"
@@ -367,7 +367,7 @@ class DeploymentEnv(NamedTuple):
 
 
 class Deployment(NamedTuple):
-    envs: dict[str, DeploymentEnv]
+    envs: Map[DeploymentEnv]
 
     @classmethod
     def parse_key(cls) -> str:
