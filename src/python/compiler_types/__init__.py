@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 from enum import StrEnum, auto
-from typing import NamedTuple, TypeAlias, Protocol, Self
+from typing import NamedTuple, TypeAlias, Protocol, Self, TypeVar, Generic
 from urllib.parse import ParseResult as URI
 
 """
@@ -70,6 +70,14 @@ class Geolocation(Primitive):
 
 Types: TypeAlias = String | Integer | Double | Boolean | Timestamp | Geolocation
 
+InType = TypeVar("InType", bound=Types, contravariant=True)
+OutType = TypeVar("OutType", bound=Types, covariant=True)
+
+class Vis(Protocol[InType, OutType]):
+    def generate(self: Self, data: InType) -> OutType:
+        ...
+
+
 
 class Version(NamedTuple):
     major: int
@@ -113,7 +121,7 @@ class Service(NamedTuple):
 
     @classmethod
     def parse_key(cls) -> str:
-        return "service"
+        return ".service"
 
     def __str__(self) -> str:
         return f"{self.name} v{self.version} ({self.scope})"
@@ -164,7 +172,7 @@ class SensorData(NamedTuple):
 
     @classmethod
     def parse_key(cls) -> str:
-        return "data"
+        return ".data"
 
     def __str__(self) -> str:
         return f"SensorData({self.sensors})"
@@ -211,6 +219,13 @@ class Authentication(NamedTuple):
 
 
 class TableVis(NamedTuple):
+    def generate(self, data: Types) -> Types:
+        """
+        TODO: DEFINE TYPES AND IMPLEMENTATION
+        It should take some input data and return a graph type
+        """
+        ...
+
     def __str__(self) -> str:
         return "TableVis"
 
@@ -219,6 +234,13 @@ class TableVis(NamedTuple):
 
 
 class ChartVis(NamedTuple):
+    def generate(self, data: Types) -> Types:
+        """
+        TODO: DEFINE TYPES AND IMPLEMENTATION
+        It should take some input data and return a graph type
+        """
+        ...
+
     def __str__(self) -> str:
         return "ChartVis"
 
@@ -227,6 +249,13 @@ class ChartVis(NamedTuple):
 
 
 class MapVis(NamedTuple):
+    def generate(self, data: Types) -> Types:
+        """
+        TODO: DEFINE TYPES AND IMPLEMENTATION
+        It should take some input data and return a graph type
+        """
+        ...
+
     def __str__(self) -> str:
         return "MapVis"
 
@@ -235,6 +264,13 @@ class MapVis(NamedTuple):
 
 
 class LineVis(NamedTuple):
+    def generate(self, data: Types) -> Types:
+        """
+        TODO: DEFINE TYPES AND IMPLEMENTATION
+        It should take some input data and return a graph type
+        """
+        ...
+
     def __str__(self) -> str:
         return "LineVis"
 
@@ -242,12 +278,9 @@ class LineVis(NamedTuple):
         return "LineVis"
 
 
-VisualizationType: TypeAlias = TableVis | ChartVis | MapVis | LineVis
-
-
-class Visualization(NamedTuple):
-    type: VisualizationType
-    format: dict[str, Types]
+class Visualizations(NamedTuple):
+    type: type[Vis[Types, Types]]
+    format: dict[str, type[Types]]
 
     def __str__(self) -> str:
         return f"{self.type} ({self.format})"
@@ -259,11 +292,11 @@ class Visualization(NamedTuple):
 class Application(NamedTuple):
     type: AppType
     layout: AppLayout
-    graphs: dict[str, Visualization]
+    graphs: dict[str, Visualizations]
 
     @classmethod
     def parse_key(cls) -> str:
-        return "application"
+        return ".application"
 
     def __str__(self) -> str:
         return f"Application({self.type}, {self.layout}, {self.graphs})"
@@ -308,7 +341,7 @@ class Deployment(NamedTuple):
 
     @classmethod
     def parse_key(cls) -> str:
-        return "deployment"
+        return ".deployment"
 
     def __str__(self) -> str:
         return f"Deployment({self.envs})"
