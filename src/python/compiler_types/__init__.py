@@ -15,7 +15,7 @@ from typing import (
 from urllib.parse import ParseResult as URI
 
 """
-Globals section / Primitives / Protocols
+Globals section / Wraps / Protocols
 """
 
 
@@ -28,12 +28,15 @@ class ParseKey(Protocol):
 Wrapped = TypeVar("Wrapped")
 
 
-class Primitive(Generic[Wrapped]):
+class Wrap(Generic[Wrapped]):
     def __init__(self, value: Wrapped, /) -> None:
         self.value = value
 
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.value, name)
 
-class String(Primitive[str]):
+
+class String(Wrap[str]):
     def __str__(self) -> str:
         return "String"
 
@@ -41,7 +44,7 @@ class String(Primitive[str]):
         return "String"
 
 
-class Integer(Primitive[int]):
+class Integer(Wrap[int]):
     def __str__(self) -> str:
         return "Integer"
 
@@ -49,7 +52,7 @@ class Integer(Primitive[int]):
         return "Integer"
 
 
-class Double(Primitive[float]):
+class Double(Wrap[float]):
     def __str__(self) -> str:
         return "Double"
 
@@ -57,7 +60,7 @@ class Double(Primitive[float]):
         return "Double"
 
 
-class Boolean(Primitive[bool]):
+class Boolean(Wrap[bool]):
     def __str__(self) -> str:
         return "Boolean"
 
@@ -65,7 +68,7 @@ class Boolean(Primitive[bool]):
         return "Boolean"
 
 
-class Timestamp(Primitive[str]):
+class Timestamp(Wrap[str]):
     def __str__(self) -> str:
         return "Timestamp"
 
@@ -73,7 +76,7 @@ class Timestamp(Primitive[str]):
         return "Timestamp"
 
 
-class Geolocation(Primitive[str]):
+class Geolocation(Wrap[str]):
     def __str__(self) -> str:
         return "Geolocation"
 
@@ -88,7 +91,7 @@ OutType = TypeVar("OutType", bound=Types, covariant=True)
 T = TypeVar("T")
 
 
-class Vec(Primitive[list[T]]):
+class Vec(Wrap[list[T]]):
     def __str__(self) -> str:
         return f"{self.value}"
 
@@ -96,7 +99,7 @@ class Vec(Primitive[list[T]]):
         return f"Vec([{','.join(repr(val) for val in self.value)}])"
 
 
-class Map(Primitive[dict[str, T]]):
+class Map(Wrap[dict[str, T]]):
     def __str__(self) -> str:
         return f"{self.value}"
 
