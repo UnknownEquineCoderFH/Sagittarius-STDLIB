@@ -8,15 +8,28 @@ from typing import (
     Protocol,
     TypeVar,
     Any,
-    MutableSequence,
+    Sequence,
+    Iterable,
     MutableMapping,
     Generic,
+    Self,
 )
 from urllib.parse import ParseResult as URI
 
 """
 Globals section / Wraps / Protocols
 """
+
+
+class Parse(Protocol):
+    @classmethod
+    def parse(cls, input: str) -> tuple[Self, str]:
+        ...
+
+
+def parse_types(t: tuple[Parse, ...]) -> Iterable[type[Parse]]:
+    for val in t:
+        yield type(val)
 
 
 class ParseKey(Protocol):
@@ -87,7 +100,7 @@ class Geolocation(Wrap[str]):
 Types: TypeAlias = String | Integer | Double | Boolean | Timestamp | Geolocation
 
 InType = TypeVar("InType", bound=Types, contravariant=True)
-OutType = TypeVar("OutType", bound=Types, covariant=True)
+OutType = TypeVar("OutType", covariant=True)
 T = TypeVar("T")
 
 
@@ -251,8 +264,24 @@ class Authentication(NamedTuple):
         return f"Authentication({self.name}, {self.role}, {self.default})"
 
 
+class TableGraph:
+    ...
+
+
+class ChartGraph:
+    ...
+
+
+class MapGraph:
+    ...
+
+
+class LineGraph:
+    ...
+
+
 class TableVis(NamedTuple):
-    def generate(self, data: Types) -> Types:
+    def generate(self, data: Types) -> TableGraph:
         """
         TODO: DEFINE TYPES AND IMPLEMENTATION
         It should take some input data and return a graph type
@@ -267,7 +296,7 @@ class TableVis(NamedTuple):
 
 
 class ChartVis(NamedTuple):
-    def generate(self, data: Types) -> Types:
+    def generate(self, data: Types) -> ChartGraph:
         """
         TODO: DEFINE TYPES AND IMPLEMENTATION
         It should take some input data and return a graph type
@@ -282,7 +311,7 @@ class ChartVis(NamedTuple):
 
 
 class MapVis(NamedTuple):
-    def generate(self, data: Types) -> Types:
+    def generate(self, data: Types) -> MapGraph:
         """
         TODO: DEFINE TYPES AND IMPLEMENTATION
         It should take some input data and return a graph type
@@ -297,7 +326,7 @@ class MapVis(NamedTuple):
 
 
 class LineVis(NamedTuple):
-    def generate(self, data: Types) -> Types:
+    def generate(self, data: Types) -> LineGraph:
         """
         TODO: DEFINE TYPES AND IMPLEMENTATION
         It should take some input data and return a graph type
