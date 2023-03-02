@@ -88,7 +88,7 @@ Service preamble section
 """
 
 
-class Scope:
+class Scope(StrEnum):
     Service = auto()
     Industry = auto()
     Manifacturing = auto()
