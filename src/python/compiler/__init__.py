@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-
+from pydantic import BaseModel
 from enum import StrEnum, auto
+from dataclasses import dataclass, Field
 from typing import (
-    NamedTuple,
+    ClassVar,
     TypeAlias,
     Protocol,
     TypeVar,
     Any,
-    Sequence,
     Iterable,
-    MutableMapping,
     Generic,
     Self,
+    runtime_checkable,
 )
 from urllib.parse import ParseResult as URI
-from iso6709.iso6709 import Location
+from iso6709.iso6709 import Location  # type: ignore
 from datetime import datetime
 
 """
@@ -23,12 +23,14 @@ Globals section / Wraps / Protocols
 """
 
 
+@runtime_checkable
 class Parse(Protocol):
     """
     A type that can be parsed from a stream.
     """
+
     @classmethod
-    def parse(cls, input: str) -> tuple[Self, str]:
+    def parse(cls, input: str, /) -> tuple[Self, str]:
         """
         Takes a stream of text and returns a tuple of the parsed value and the remaining text.
         Raises a ValueError if the text cannot be parsed.
@@ -36,18 +38,26 @@ class Parse(Protocol):
         ...
 
 
-def parse_types(t: tuple[Parse, ...]) -> Iterable[type[Parse]]:
+class Dataclass(Protocol):
+    __dataclass_fields__: ClassVar[dict[str, Any]]
+
+
+def parse_types(cls: type[Dataclass]) -> Iterable[type[Parse]]:
     """
     Returns an iterable containing the types of the elements a given tuple.
     """
-    for val in t:
-        yield type(val)
+    for val in cls.__dataclass_fields__.values():
+        if not isinstance(val, Field):
+            continue
+
+        yield val.type
 
 
 class ParseKey(Protocol):
     """
     A class that has a key, representing a full section.
     """
+
     @classmethod
     def parse_key(cls) -> str:
         """
@@ -65,6 +75,7 @@ class Wrap(Generic[Wrapped]):
 
     Forwards all other calls to the wrapped type.
     """
+
     def __init__(self, value: Wrapped, /) -> None:
         self.value = value
 
@@ -83,7 +94,10 @@ class String(Wrap[str]):
 
 
 class Integer(Wrap[int]):
-    ...
+    @classmethod
+    def parse(cls, input: str, /) -> tuple[Integer, str]:
+        val, rest = input.split(" ", 1)
+        return cls(int(val)), rest
 
 
 class Double(Wrap[float]):
@@ -124,7 +138,8 @@ class Vis(Protocol[InType, OutType]):
         ...
 
 
-class Version(NamedTuple):
+@dataclass(frozen=True)
+class Version:
     major: Integer
     minor: Integer
     patch: Integer
@@ -134,6 +149,13 @@ class Version(NamedTuple):
 
     def __repr__(self) -> str:
         return f"Version({self.major}, {self.minor}, {self.patch})"
+
+    @classmethod
+    def parse(cls, input: str, /) -> tuple[Version, str]:
+        major, rest = Integer.parse(input)
+        minor, rest = Integer.parse(rest)
+        patch, rest = Integer.parse(rest)
+        return cls(major, minor, patch), rest
 
 
 """
@@ -159,7 +181,8 @@ class Scope(StrEnum):
     Infrastructure = auto()
 
 
-class Service(NamedTuple):
+@dataclass(frozen=True)
+class Service:
     name: String
     version: Version
     scope: Scope
@@ -185,7 +208,8 @@ class Provider(StrEnum):
     Dataskop = auto()
 
 
-class SensorFormat(NamedTuple):
+@dataclass(frozen=True)
+class SensorFormat:
     props: Map[Types]
 
     def __str__(self) -> str:
@@ -199,7 +223,8 @@ class SensorType(StrEnum):
     SmartMeter = auto()
 
 
-class Sensor(NamedTuple):
+@dataclass(frozen=True)
+class Sensor:
     type: SensorType
     provider: Provider
     uri: URI
@@ -212,7 +237,8 @@ class Sensor(NamedTuple):
         return f"Sensor({self.type}, {self.provider}, {self.uri}, {self.format})"
 
 
-class SensorData(NamedTuple):
+@dataclass(frozen=True)
+class SensorData:
     sensors: Map[Sensor]
 
     @classmethod
@@ -251,7 +277,8 @@ class AuthenticationRoles(StrEnum):
     Guest = auto()
 
 
-class Authentication(NamedTuple):
+@dataclass(frozen=True)
+class Authentication:
     name: str
     role: AuthenticationRoles
     default: bool = False
@@ -279,7 +306,8 @@ class LineGraph:
     ...
 
 
-class TableVis(NamedTuple, Generic[T]):
+@dataclass(frozen=True)
+class TableVis(Generic[T]):
     def generate(self, data: T) -> TableGraph:
         """
         TODO: DEFINE TYPES AND IMPLEMENTATION
@@ -294,7 +322,8 @@ class TableVis(NamedTuple, Generic[T]):
         return "TableVis"
 
 
-class ChartVis(NamedTuple, Generic[T]):
+@dataclass(frozen=True)
+class ChartVis(Generic[T]):
     def generate(self, data: T) -> ChartGraph:
         """
         TODO: DEFINE TYPES AND IMPLEMENTATION
@@ -309,7 +338,8 @@ class ChartVis(NamedTuple, Generic[T]):
         return "ChartVis"
 
 
-class MapVis(NamedTuple, Generic[T]):
+@dataclass(frozen=True)
+class MapVis(Generic[T]):
     def generate(self, data: T) -> MapGraph:
         """
         TODO: DEFINE TYPES AND IMPLEMENTATION
@@ -324,7 +354,8 @@ class MapVis(NamedTuple, Generic[T]):
         return "MapVis"
 
 
-class LineVis(NamedTuple, Generic[T]):
+@dataclass(frozen=True)
+class LineVis(Generic[T]):
     def generate(self, data: T) -> LineGraph:
         """
         TODO: DEFINE TYPES AND IMPLEMENTATION
@@ -339,21 +370,24 @@ class LineVis(NamedTuple, Generic[T]):
         return "LineVis"
 
 
-class Visualizations(NamedTuple):
+@dataclass(frozen=True)
+class Visualizations:
     """
     TODO! Fix this section
     """
-    type: type[Vis[Types, Types]]
+
+    _type: type[Vis[Types, Types]]
     format: Map[type[Types]]
 
     def __str__(self) -> str:
-        return f"{self.type} ({self.format})"
+        return f"{self._type} ({self.format})"
 
     def __repr__(self) -> str:
-        return f"Visualization({self.type}, {self.format})"
+        return f"Visualization({self._type}, {self.format})"
 
 
-class Application(NamedTuple):
+@dataclass(frozen=True)
+class Application:
     type: AppType
     layout: AppLayout
     graphs: Map[Visualizations]
@@ -385,7 +419,8 @@ class DeploymentType(StrEnum):
     Serverless = auto()
 
 
-class DeploymentEnv(NamedTuple):
+@dataclass(frozen=True)
+class DeploymentEnv:
     uri: URI
     port: Integer | None
     type: DeploymentType
@@ -400,7 +435,8 @@ class DeploymentEnv(NamedTuple):
         )
 
 
-class Deployment(NamedTuple):
+@dataclass(frozen=True)
+class Deployment:
     envs: Map[DeploymentEnv]
 
     @classmethod
@@ -419,7 +455,8 @@ File section
 """
 
 
-class SSDL(NamedTuple):
+@dataclass(frozen=True)
+class SSDL:
     service: Service
     data: SensorData
     application: Application
@@ -438,3 +475,8 @@ class SSDL(NamedTuple):
         return (
             f"SSDL({self.service}, {self.data}, {self.application}, {self.deployment})"
         )
+
+
+if __name__ == "__main__":
+    ...
+
