@@ -10,16 +10,18 @@
     },
     "data_sources": {
         "measurements": {
-            "Madrid Air Quality": {
-                "name": "Madrid Air Quality",
+            "Measurements": {
+                "name": "Measurements",
                 "provider": "Fiware",
                 "type": "Sensor",
-                "uri": "https://datos.madrid.es/egob/catalogo/212629-0-calidad-aire-tiempo-real.csv",
+                "uri": "https://data.iiss.at/dataskop/fiwarenosec",
                 "query": {
                     "type": "AirQualityObserved",
                     "select": [
-                        "dateObserved",
-                        "airQualityLevel"
+                        "location",
+                        "Nox",
+                        "O3",
+                        "dateObserved"
                     ]
                 }
             }
@@ -52,10 +54,10 @@
     },
     "deployment": {
         "env": {
-            "dev": {
-                "name": "dev",
-                "uri": "http://localhost/",
-                "port": 8080,
+            "local": {
+                "name": "local",
+                "uri": "http://localhost/test",
+                "port": 50055,
                 "type": "Docker"
             }
         }

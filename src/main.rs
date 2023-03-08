@@ -646,6 +646,12 @@ struct SmartService {
    Parser
 */
 
+struct LineInfo {
+    content: &'static str,
+    number: u16,
+    indentation: u8,
+}
+
 struct Parser {
     indentation: u8,
     source: &'static str,
@@ -667,8 +673,21 @@ impl Parser {
         }
     }
 
-    fn lines(&self) -> impl Iterator<Item = &str> {
-        self.source.lines()
+    fn smart_service(self) -> Result<SmartService, anyhow::Error> {
+        Ok(SmartService {
+            service: self
+                .service
+                .ok_or_else(|| anyhow::anyhow!("Service not found"))?,
+            data_sources: self
+                .data_sources
+                .ok_or_else(|| anyhow::anyhow!("Data Sources not found"))?,
+            application: self
+                .application
+                .ok_or_else(|| anyhow::anyhow!("Application not found"))?,
+            deployment: self
+                .deployment
+                .ok_or_else(|| anyhow::anyhow!("Deployment not found"))?,
+        })
     }
 }
 
@@ -686,19 +705,17 @@ fn main() {
     let mut _ds = DataSources::default();
 
     _ds.add_measurement(Measurement {
-        name: "Madrid Air Quality".into(),
+        name: "Measurements".into(),
         provider: Provider::Fiware,
         r#type: SourceType::Sensor,
-        uri: url::Url::from_str(
-            "https://datos.madrid.es/egob/catalogo/212629-0-calidad-aire-tiempo-real.csv",
-        )
-        .unwrap()
-        .into(),
+        uri: Uri::from_stream("https://data.iiss.at/dataskop/fiwarenosec").unwrap_or_default(),
         query: Query {
             r#type: "AirQualityObserved".into(),
             select: Array(vec![
-                Text("dateObserved".into()),
-                Text("airQualityLevel".into()),
+                "location".into(),
+                "Nox".into(),
+                "O3".into(),
+                "dateObserved".into(),
             ]),
         },
     });
@@ -715,10 +732,10 @@ fn main() {
         r#type: VisType::Map,
         source: "Measurements".into(),
         data: Array(vec![
-            Text("location".into()),
-            Text("address".into()),
-            Text("NOx".into()),
-            Text("O3".into()),
+            "location".into(),
+            "address".into(),
+            "NOx".into(),
+            "O3".into(),
         ]),
         extra: Some(Map(map! {
             "area".into() => "Madrid".into(),
@@ -727,10 +744,10 @@ fn main() {
 
     let _deployment = Deployment {
         env: Map(map! {
-            "dev".into() => DeploymentEnv {
-                name: "dev".into(),
-                uri: Uri::default(),
-                port: 8080.into(),
+            "local".into() => DeploymentEnv {
+                name: "local".into(),
+                uri: Uri::from_stream("http://localhost/test").unwrap_or_default(),
+                port: 50055.into(),
                 r#type: DeploymentType::Docker,
             }
         }),
@@ -743,7 +760,7 @@ fn main() {
         deployment: _deployment,
     };
 
-    let _sr = serde_json::to_string(&_ss).unwrap();
+    let _sr = serde_json::to_string(&_ss).unwrap_or_default();
 
     println!("{_sr}");
 }
