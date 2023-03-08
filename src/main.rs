@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
-use std::{collections::HashMap, ops::Deref, str::FromStr};
+use map_macro::map;
+use std::{collections::HashMap, ops::Deref, str::FromStr, vec};
 
 /*
  * Primitives
@@ -133,6 +134,12 @@ impl From<String> for Text {
     }
 }
 
+impl From<&str> for Text {
+    fn from(value: &str) -> Self {
+        Text(value.to_string())
+    }
+}
+
 #[derive(
     Default,
     Debug,
@@ -238,19 +245,19 @@ impl From<url::Url> for Uri {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
-struct GeoPoint(f64, f64);
+struct GeoPoint(Float, Float);
 
 impl GeoPoint {
-    fn new(lat: f64, lon: f64) -> Self {
-        GeoPoint(lat, lon)
+    fn new(lat: impl Into<Float>, lon: impl Into<Float>) -> Self {
+        GeoPoint(lat.into(), lon.into())
     }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
-struct GeoPolygon(Vec<(f64, f64)>);
+struct GeoPolygon(Vec<(Float, Float)>);
 
 impl GeoPolygon {
-    fn new(points: Vec<(f64, f64)>) -> Self {
+    fn new(points: Vec<(Float, Float)>) -> Self {
         GeoPolygon(points)
     }
 }
@@ -311,25 +318,26 @@ impl<T: Parse> IntoIterator for Array<T> {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-struct Map<T: Parse>(HashMap<String, T>);
+struct Map<T: Parse>(HashMap<Text, T>);
 
 impl<T: Parse> Map<T> {
     fn new() -> Self {
         Map(HashMap::new())
     }
 
-    fn insert(&mut self, key: String, value: T) {
-        self.0.insert(key, value);
+    fn insert(&mut self, key: impl Into<Text>, value: T) -> &mut Self {
+        self.0.insert(key.into(), value);
+        self
     }
 
-    fn get(&self, key: &str) -> Option<&T> {
-        self.0.get(key)
+    fn get(&self, key: impl Into<Text>) -> Option<&T> {
+        self.0.get(&key.into())
     }
 }
 
 impl<T: Parse> IntoIterator for Map<T> {
-    type Item = (String, T);
-    type IntoIter = std::collections::hash_map::IntoIter<String, T>;
+    type Item = (Text, T);
+    type IntoIter = std::collections::hash_map::IntoIter<Text, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
@@ -377,6 +385,20 @@ struct Version {
     major: Integer,
     minor: Integer,
     patch: Integer,
+}
+
+impl Version {
+    fn new(
+        major: impl Into<Integer>,
+        minor: impl Into<Integer>,
+        patch: impl Into<Integer>,
+    ) -> Self {
+        Version {
+            major: major.into(),
+            minor: minor.into(),
+            patch: patch.into(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -467,6 +489,14 @@ impl Parse for Measurement {
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 struct DataSources {
     measurements: Map<Measurement>,
+}
+
+impl DataSources {
+    fn add_measurement(&mut self, measurement: Measurement) -> &mut Self {
+        self.measurements
+            .insert(measurement.name.clone(), measurement);
+        self
+    }
 }
 
 /*
@@ -563,6 +593,13 @@ struct Application {
     visualizations: Map<Vis>,
 }
 
+impl Application {
+    fn add_visualization(&mut self, vis: Vis) -> &mut Self {
+        self.visualizations.insert(vis.name.clone(), vis);
+        self
+    }
+}
+
 /*
    Deployment Data
 */
@@ -597,8 +634,118 @@ struct Deployment {
     env: Map<DeploymentEnv>,
 }
 
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+struct SmartService {
+    service: Service,
+    data_sources: DataSources,
+    application: Application,
+    deployment: Deployment,
+}
+
+/*
+   Parser
+*/
+
+struct Parser {
+    indentation: u8,
+    source: &'static str,
+    service: Option<Service>,
+    data_sources: Option<DataSources>,
+    application: Option<Application>,
+    deployment: Option<Deployment>,
+}
+
+impl Parser {
+    fn new(source: &'static str) -> Self {
+        Self {
+            indentation: 0,
+            source,
+            service: None,
+            data_sources: None,
+            application: None,
+            deployment: None,
+        }
+    }
+
+    fn lines(&self) -> impl Iterator<Item = &str> {
+        self.source.lines()
+    }
+}
+
 fn main() {
-    println!("Hello, world!");
+    let _service = Service {
+        name: "Air Quality Madrid".into(),
+        version: Version {
+            major: 1.into(),
+            minor: 0.into(),
+            patch: 0.into(),
+        },
+        scope: Scope::Environment,
+    };
+
+    let mut _ds = DataSources::default();
+
+    _ds.add_measurement(Measurement {
+        name: "Madrid Air Quality".into(),
+        provider: Provider::Fiware,
+        r#type: SourceType::Sensor,
+        uri: url::Url::from_str(
+            "https://datos.madrid.es/egob/catalogo/212629-0-calidad-aire-tiempo-real.csv",
+        )
+        .unwrap()
+        .into(),
+        query: Query {
+            r#type: "AirQualityObserved".into(),
+            select: Array(vec![
+                Text("dateObserved".into()),
+                Text("airQualityLevel".into()),
+            ]),
+        },
+    });
+
+    let mut _app = Application {
+        r#type: AppType::Web,
+        layout: LayoutType::SinglePage,
+        roles: Array(vec![Roles::User, Roles::Superuser, Roles::Admin]),
+        ..Default::default()
+    };
+
+    _app.add_visualization(Vis {
+        name: "Air Quality Visualization".into(),
+        r#type: VisType::Map,
+        source: "Measurements".into(),
+        data: Array(vec![
+            Text("location".into()),
+            Text("address".into()),
+            Text("NOx".into()),
+            Text("O3".into()),
+        ]),
+        extra: Some(Map(map! {
+            "area".into() => "Madrid".into(),
+        })),
+    });
+
+    let _deployment = Deployment {
+        env: Map(map! {
+            "dev".into() => DeploymentEnv {
+                name: "dev".into(),
+                uri: Uri::default(),
+                port: 8080.into(),
+                r#type: DeploymentType::Docker,
+            }
+        }),
+    };
+
+    let _ss = SmartService {
+        service: _service,
+        data_sources: _ds.to_owned(),
+        application: _app.to_owned(),
+        deployment: _deployment,
+    };
+
+    let _sr = serde_json::to_string(&_ss).unwrap();
+
+    println!("{_sr}");
 }
 
 #[cfg(test)]
@@ -619,11 +766,7 @@ mod tests {
 
         let expected = Service {
             name: Text("Air Quality Madrid".into()),
-            version: Version {
-                major: Integer(1),
-                minor: Integer(0),
-                patch: Integer(0),
-            },
+            version: Version::new(1, 0, 0),
             scope: Scope::Environment,
         };
 

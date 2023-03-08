@@ -14,3 +14,5 @@ strum_macros = "0.24.1"
 strum = { version = "0.24.1", features = ["derive"] }
 url = { version = "2.3.1", features = ["serde"] }
 serde = { version = "1.0.144", features = ["derive"] }
+serde_json = "1.0.94"
+map-macro = "0.2.5"

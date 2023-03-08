@@ -7,3 +7,4 @@ commits.md
 *.ssdl
 *cache
 *.json
+!schema.json

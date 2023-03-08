@@ -1,0 +1,63 @@
+{
+    "service": {
+        "version": {
+            "major": 1,
+            "minor": 0,
+            "patch": 0
+        },
+        "name": "Air Quality Madrid",
+        "scope": "Environment"
+    },
+    "data_sources": {
+        "measurements": {
+            "Madrid Air Quality": {
+                "name": "Madrid Air Quality",
+                "provider": "Fiware",
+                "type": "Sensor",
+                "uri": "https://datos.madrid.es/egob/catalogo/212629-0-calidad-aire-tiempo-real.csv",
+                "query": {
+                    "type": "AirQualityObserved",
+                    "select": [
+                        "dateObserved",
+                        "airQualityLevel"
+                    ]
+                }
+            }
+        }
+    },
+    "application": {
+        "type": "Web",
+        "layout": "SinglePage",
+        "roles": [
+            "User",
+            "Superuser",
+            "Admin"
+        ],
+        "visualizations": {
+            "Air Quality Visualization": {
+                "name": "Air Quality Visualization",
+                "type": "Map",
+                "source": "Measurements",
+                "data": [
+                    "location",
+                    "address",
+                    "NOx",
+                    "O3"
+                ],
+                "extra": {
+                    "area": "Madrid"
+                }
+            }
+        }
+    },
+    "deployment": {
+        "env": {
+            "dev": {
+                "name": "dev",
+                "uri": "http://localhost/",
+                "port": 8080,
+                "type": "Docker"
+            }
+        }
+    }
+}
